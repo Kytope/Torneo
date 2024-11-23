@@ -1,8 +1,41 @@
-# React + Vite
+# Tournament Drawing App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React-based web application for organizing and managing drawing tournaments. Features group stages, round-robin, and bracket elimination phases.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Drawing upload and management
+- Multi-phase tournament system:
+  - Group Phase
+  - Round Robin
+  - Brackets
+- Real-time voting interface
+- Full-screen image preview
+- Tournament progression tracking
+- Victory celebration with audio
+
+## Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## Technical Stack
+
+- React 19
+- Vite
+- Tailwind CSS
+- Context API for state management
+
+## License
+
+MIT
+
+---
