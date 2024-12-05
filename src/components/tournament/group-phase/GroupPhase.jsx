@@ -16,120 +16,111 @@ export const GroupPhase = () => {
   const [currentMatch, setCurrentMatch] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
 
-useEffect(() => {
-  const distributeDrawings = (drawings) => {
-    const totalDrawings = drawings.length;
-    
-    // Función para verificar si una distribución es válida
-    const isValidDistribution = (g4, g3) => {
-      return (g4 * 4 + g3 * 3) === totalDrawings;
-    };
-
-    // Función para encontrar la distribución óptima
-    const findOptimalDistribution = (total) => {
-      let maxGroups4 = Math.floor(total / 4);
+  useEffect(() => {
+    const distributeDrawings = (drawings) => {
+      const totalDrawings = drawings.length;
       
-      // Probamos cada combinación posible empezando con el máximo de grupos de 4
-      for (let groups4 = maxGroups4; groups4 >= 0; groups4--) {
-        const remainingPlayers = total - (groups4 * 4);
-        if (remainingPlayers % 3 === 0) {
-          const groups3 = remainingPlayers / 3;
-          if (isValidDistribution(groups4, groups3)) {
-            return {
-              groupsOf4: groups4,
-              groupsOf3: groups3,
-              totalParticipants: total,
-              expectedQualifiers: (groups4 * 2) + groups3
-            };
+      // Función para verificar si una distribución es válida
+      const isValidDistribution = (g4, g3) => {
+        return (g4 * 4 + g3 * 3) === totalDrawings;
+      };
+  
+      // Función para encontrar la distribución óptima
+      const findOptimalDistribution = (total) => {
+        let maxGroups4 = Math.floor(total / 4);
+        
+        for (let groups4 = maxGroups4; groups4 >= 0; groups4--) {
+          const remainingPlayers = total - (groups4 * 4);
+          if (remainingPlayers % 3 === 0) {
+            const groups3 = remainingPlayers / 3;
+            if (isValidDistribution(groups4, groups3)) {
+              return {
+                groupsOf4: groups4,
+                groupsOf3: groups3,
+                totalParticipants: total,
+                expectedQualifiers: (groups4 * 2) + groups3
+              };
+            }
           }
         }
+        
+        throw new Error(`No se encontró una distribución válida para ${total} participantes`);
+      };
+  
+      // Calculamos la distribución
+      const distribution = findOptimalDistribution(totalDrawings);
+      const shuffledDrawings = [...drawings].sort(() => Math.random() - 0.5);
+      const groups = [];
+      let currentIndex = 0;
+  
+      // Creamos los grupos de 4
+      for (let i = 0; i < distribution.groupsOf4; i++) {
+        groups.push(
+          shuffledDrawings.slice(currentIndex, currentIndex + 4).map(drawing => ({
+            ...drawing,
+            wins: 0,
+            losses: 0,
+            points: 0,
+            matchesPlayed: 0
+          }))
+        );
+        currentIndex += 4;
       }
-      
-      throw new Error(`No se encontró una distribución válida para ${total} participantes`);
+  
+      // Creamos los grupos de 3
+      for (let i = 0; i < distribution.groupsOf3; i++) {
+        groups.push(
+          shuffledDrawings.slice(currentIndex, currentIndex + 3).map(drawing => ({
+            ...drawing,
+            wins: 0,
+            losses: 0,
+            points: 0,
+            matchesPlayed: 0
+          }))
+        );
+        currentIndex += 3;
+      }
+  
+      return groups;
     };
-
-    // Calculamos la distribución
-    const distribution = findOptimalDistribution(totalDrawings);
-    console.log('Distribución calculada:', distribution);
-
-    // Mezclamos los dibujos
-    const shuffledDrawings = [...drawings].sort(() => Math.random() - 0.5);
-    const groups = [];
-    let currentIndex = 0;
-
-    // Creamos los grupos de 4
-    for (let i = 0; i < distribution.groupsOf4; i++) {
-      groups.push(
-        shuffledDrawings.slice(currentIndex, currentIndex + 4).map(drawing => ({
-          ...drawing,
-          wins: 0,
-          losses: 0,
-          points: 0,
-          matchesPlayed: 0
-        }))
-      );
-      currentIndex += 4;
-    }
-
-    // Creamos los grupos de 3
-    for (let i = 0; i < distribution.groupsOf3; i++) {
-      groups.push(
-        shuffledDrawings.slice(currentIndex, currentIndex + 3).map(drawing => ({
-          ...drawing,
-          wins: 0,
-          losses: 0,
-          points: 0,
-          matchesPlayed: 0
-        }))
-      );
-      currentIndex += 3;
-    }
-
-    // Verificación final
-    const totalDistributed = groups.reduce((sum, g) => sum + g.length, 0);
-    console.log('Verificación de distribución:', {
-      gruposDe4: groups.filter(g => g.length === 4).length,
-      gruposDe3: groups.filter(g => g.length === 3).length,
-      totalDistribuido: totalDistributed,
-      participantesOriginales: totalDrawings
-    });
-
-    if (totalDistributed !== totalDrawings) {
-      throw new Error(`Error en la distribución: distribuidos ${totalDistributed} de ${totalDrawings}`);
-    }
-
-    return groups;
-  };
-
-  try {
-    const groupedDrawings = distributeDrawings(drawings);
-    setGroups(groupedDrawings);
-
-    // Generar enfrentamientos para cada grupo
-    const allMatches = groupedDrawings.map(group => {
-      const groupMatches = [];
-      for (let i = 0; i < group.length; i++) {
-        for (let j = i + 1; j < group.length; j++) {
-          groupMatches.push({
-            drawing1: group[i],
-            drawing2: group[j],
+  
+    // Función para generar matches aleatorios para un grupo
+    const generateRandomMatches = (group) => {
+      const matches = [];
+      const participants = [...group];
+      
+      // Generamos todos los posibles enfrentamientos
+      for (let i = 0; i < participants.length; i++) {
+        for (let j = i + 1; j < participants.length; j++) {
+          matches.push({
+            drawing1: participants[i],
+            drawing2: participants[j],
             winner: null,
             completed: false
           });
         }
       }
-      return groupMatches;
-    });
-
-    setMatches(allMatches);
-    if (allMatches[0] && allMatches[0][0]) {
-      setCurrentMatch(allMatches[0][0]);
+      
+      // Mezclamos los matches de forma aleatoria
+      return matches.sort(() => Math.random() - 0.5);
+    };
+  
+    try {
+      const groupedDrawings = distributeDrawings(drawings);
+      setGroups(groupedDrawings);
+  
+      // Generar enfrentamientos aleatorios para cada grupo
+      const allMatches = groupedDrawings.map(group => generateRandomMatches(group));
+  
+      setMatches(allMatches);
+      if (allMatches[0] && allMatches[0][0]) {
+        setCurrentMatch(allMatches[0][0]);
+      }
+    } catch (error) {
+      console.error('Error al distribuir los grupos:', error);
+      alert('Hubo un error al distribuir los grupos. Por favor, inténtalo de nuevo.');
     }
-  } catch (error) {
-    console.error('Error al distribuir los grupos:', error);
-    alert('Hubo un error al distribuir los grupos. Por favor, inténtalo de nuevo.');
-  }
-}, [drawings]);
+  }, [drawings]);
 
   const getNextPowerOfTwo = (n) => {
     return Math.pow(2, Math.floor(Math.log2(n)));
@@ -159,8 +150,8 @@ useEffect(() => {
   };
   const handleVote = (drawingId) => {
     if (!currentMatch || currentMatch.completed) return;
-
-    // Actualizar el match actual
+  
+    // Actualizar el match actual y encontrar el siguiente
     setMatches(prevMatches => {
       const newMatches = [...prevMatches];
       const groupMatches = [...newMatches[selectedGroup]];
@@ -168,46 +159,79 @@ useEffect(() => {
         m.drawing1.id === currentMatch.drawing1.id && 
         m.drawing2.id === currentMatch.drawing2.id
       );
-
+  
+      // Marcar el match actual como completado
       groupMatches[matchIndex] = {
         ...groupMatches[matchIndex],
         winner: drawingId,
         completed: true
       };
       newMatches[selectedGroup] = groupMatches;
-
-      // Actualizar puntos en el grupo
-      setGroups(prevGroups => {
-        const newGroups = [...prevGroups];
-        const group = [...newGroups[selectedGroup]];
-        const winnerIndex = group.findIndex(d => d.id === drawingId);
-        const loserIndex = group.findIndex(d => 
-          d.id === (drawingId === currentMatch.drawing1.id ? currentMatch.drawing2.id : currentMatch.drawing1.id)
-        );
-
-        group[winnerIndex] = {
-          ...group[winnerIndex],
-          points: group[winnerIndex].points + 3,
-          matchesPlayed: group[winnerIndex].matchesPlayed + 1,
-          wins: group[winnerIndex].wins + 1
-        };
-
-        group[loserIndex] = {
-          ...group[loserIndex],
-          matchesPlayed: group[loserIndex].matchesPlayed + 1,
-          losses: group[loserIndex].losses + 1
-        };
-
-        newGroups[selectedGroup] = group;
-        return newGroups;
-      });
-
+  
+      // Encontrar el siguiente match no completado
+      const nextMatch = groupMatches.find((match, index) => 
+        index > matchIndex && !match.completed
+      );
+      
+      // Actualizar el match actual
+      if (nextMatch) {
+        setCurrentMatch(nextMatch);
+      } else {
+        setCurrentMatch(null);
+      }
+  
       return newMatches;
     });
-
-    // Buscar el siguiente match no completado
-    const nextMatch = matches[selectedGroup].find(match => !match.completed);
-    setCurrentMatch(nextMatch || null);
+  
+    // Actualizar los puntos en el grupo
+    setGroups(prevGroups => {
+      const newGroups = [...prevGroups];
+      const group = [...newGroups[selectedGroup]];
+      
+      // Encontrar los índices del ganador y perdedor
+      const winnerIndex = group.findIndex(d => d.id === drawingId);
+      const loserIndex = group.findIndex(d => 
+        d.id === (drawingId === currentMatch.drawing1.id 
+          ? currentMatch.drawing2.id 
+          : currentMatch.drawing1.id)
+      );
+  
+      // Actualizar las estadísticas del ganador
+      group[winnerIndex] = {
+        ...group[winnerIndex],
+        points: (group[winnerIndex].points || 0) + 3,
+        matchesPlayed: (group[winnerIndex].matchesPlayed || 0) + 1,
+        wins: (group[winnerIndex].wins || 0) + 1
+      };
+  
+      // Actualizar las estadísticas del perdedor
+      group[loserIndex] = {
+        ...group[loserIndex],
+        matchesPlayed: (group[loserIndex].matchesPlayed || 0) + 1,
+        losses: (group[loserIndex].losses || 0) + 1
+      };
+  
+      newGroups[selectedGroup] = group;
+      return newGroups;
+    });
+  
+    // Verificar si el grupo actual está completo
+    const isGroupComplete = matches[selectedGroup].every((match, idx) => {
+      return idx === matches[selectedGroup].length - 1 
+        ? match.winner === drawingId 
+        : match.completed;
+    });
+  
+    if (isGroupComplete) {
+      if (selectedGroup < groups.length - 1) {
+        // Cambiar al siguiente grupo automáticamente después de un breve delay
+        setTimeout(() => {
+          setSelectedGroup(prev => prev + 1);
+          const nextGroupFirstMatch = matches[selectedGroup + 1].find(m => !m.completed);
+          setCurrentMatch(nextGroupFirstMatch);
+        }, 1000);
+      }
+    }
   };
 
   const handleGroupComplete = () => {
@@ -533,16 +557,13 @@ const VotingCard = ({ drawing, isWinner, onVote, disabled, onFullScreen }) => {
         
         {!disabled && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onVote(drawing.id);
-            }}
+            onClick={() => onVote(drawing.id)}
             className="w-full px-4 py-3 rounded-lg font-medium transition-all duration-300
                      bg-custom-highlight text-custom-dark hover:bg-custom-highlight/90
                      transform hover:scale-105 active:scale-95"
-          >
-            Votar
-          </button>
+                     >
+                      Votar
+                     </button>
         )}
         
         {isWinner && (

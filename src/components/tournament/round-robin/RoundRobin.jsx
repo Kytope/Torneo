@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 
 export const RoundRobin = () => {
   const { 
-    bracketParticipants, // Cambiamos groups por bracketParticipants
+    bracketParticipants,
     setTournamentState, 
     TOURNAMENT_STATES, 
     setBracketParticipants 
@@ -15,39 +15,64 @@ export const RoundRobin = () => {
   const [currentMatch, setCurrentMatch] = useState(null);
   const [fullScreenImage, setFullScreenImage] = useState(null);
   const [roundRobinComplete, setRoundRobinComplete] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Participantes recibidos:', bracketParticipants);
-    
-    // Inicializar los dibujos con estadísticas
-    const initializedDrawings = bracketParticipants.map(drawing => ({
-      ...drawing,
-      points: 0,
-      matchesPlayed: 0,
-      wins: 0,
-      losses: 0
-    }));
-    
-    setQualifiedDrawings(initializedDrawings);
+    const initializeRoundRobin = async () => {
+      setIsLoading(true);
+      try {
+        console.log('Participantes recibidos:', bracketParticipants);
+        
+        // Inicializar los dibujos con estadísticas
+        const initializedDrawings = bracketParticipants.map(drawing => ({
+          ...drawing,
+          points: 0,
+          matchesPlayed: 0,
+          wins: 0,
+          losses: 0
+        }));
+        
+        setQualifiedDrawings(initializedDrawings);
 
-    // Generar todos los enfrentamientos posibles
-    const roundRobinMatches = [];
-    for (let i = 0; i < initializedDrawings.length; i++) {
-      for (let j = i + 1; j < initializedDrawings.length; j++) {
-        roundRobinMatches.push({
-          drawing1: initializedDrawings[i],
-          drawing2: initializedDrawings[j],
-          winner: null,
-          completed: false
-        });
+        // Generar todos los enfrentamientos posibles y mezclarlos
+        const generateRandomMatches = (participants) => {
+          const roundRobinMatches = [];
+          const shuffledParticipants = [...participants].sort(() => Math.random() - 0.5);
+          
+          for (let i = 0; i < shuffledParticipants.length; i++) {
+            for (let j = i + 1; j < shuffledParticipants.length; j++) {
+              roundRobinMatches.push({
+                drawing1: shuffledParticipants[i],
+                drawing2: shuffledParticipants[j],
+                winner: null,
+                completed: false,
+                matchNumber: roundRobinMatches.length + 1
+              });
+            }
+          }
+          
+          // Mezclar los matches
+          return roundRobinMatches.sort(() => Math.random() - 0.5);
+        };
+
+        const randomizedMatches = generateRandomMatches(initializedDrawings);
+        
+        // Simular un pequeño delay para mostrar la pantalla de carga
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setMatches(randomizedMatches);
+        if (randomizedMatches.length > 0) {
+          setCurrentMatch(randomizedMatches[0]);
+        }
+      } catch (error) {
+        console.error('Error al inicializar Round Robin:', error);
+        alert('Hubo un error al inicializar la fase Round Robin. Por favor, intenta de nuevo.');
+      } finally {
+        setIsLoading(false);
       }
-    }
-    
-    console.log('Matches generados:', roundRobinMatches);
-    setMatches(roundRobinMatches);
-    if (roundRobinMatches.length > 0) {
-      setCurrentMatch(roundRobinMatches[0]);
-    }
+    };
+
+    initializeRoundRobin();
   }, [bracketParticipants]);
 
   const getNextPowerOfTwo = (n) => {
@@ -99,6 +124,24 @@ export const RoundRobin = () => {
         });
       });
     };
+
+    if (isLoading) {
+      return (
+        <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4">
+          <div className="relative w-16 h-16">
+            <div className="absolute inset-0 border-4 border-custom-light rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-custom-highlight rounded-full 
+                           animate-spin border-t-transparent"></div>
+          </div>
+          <div className="text-custom-highlight font-medium">
+            Preparando Fase Round Robin...
+          </div>
+          <div className="text-sm text-gray-400 text-center max-w-md">
+            Generando enfrentamientos aleatorios y preparando el torneo
+          </div>
+        </div>
+      );
+    }
 
   const completeRoundRobin = () => {
     // Verificar si todos los matches están completos
